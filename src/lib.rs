@@ -8,6 +8,9 @@ use std::{
     path::PathBuf,
 };
 
+const LIBNAME: &str = "libspook";
+const CONF_DIR: &str = ".libspook";
+
 // pub type HMODULE = *mut core::ffi::c_void
 // pub type HANDLE = *mut core::ffi::c_void
 // pub type PCWSTR = *const u16 (and LPWSTR)
@@ -93,7 +96,7 @@ fn has_config() -> Result<PathBuf, Box<dyn Error>> {
 
     let mut config_path = PathBuf::from(home_path);
 
-    config_path.push(".libspook");
+    config_path.push(CONF_DIR);
 
     if !config_path.exists() {
         Err("configuration directory does not exist")?;
@@ -170,8 +173,10 @@ impl Config {
 fn error_message_box(msg: String) {
     let msg = format!("🤕 {msg}\0");
     let msg = msg.encode_utf16().collect::<Vec<_>>();
-    let title = "Mirrors Edge Multiplayer Error\0";
-    let title = title.encode_utf16().collect::<Vec<_>>();
+
+    let mut title = LIBNAME.encode_utf16().collect::<Vec<_>>();
+    title.push(0x00);
+
     unsafe {
         MessageBoxW(0, msg.as_ptr(), title.as_ptr(), 0);
     };
