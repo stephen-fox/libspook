@@ -164,7 +164,7 @@ impl Config {
             let mut splitter = line.splitn(2, '=');
 
             let Some(mut key) = splitter.next() else {
-                return Err(format!("line {line_num}: missing parameter"))?;
+                return Err(format!("line {line_num}: missing parameter name"))?;
             };
 
             key = key.trim();
