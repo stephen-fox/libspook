@@ -41,7 +41,10 @@ extern "system" fn DllMain(_: isize, call_reason: u32, _: *mut ()) -> bool {
 
 fn attach() {
     let conf_path = match has_config() {
-        Ok(p) => p,
+        Ok(opt_path) => match opt_path {
+            Some(path) => path,
+            None => return,
+        },
         Err(e) => {
             error_message_box(format!("failed to get config path - {e}"));
             return;
@@ -73,7 +76,7 @@ fn attach() {
     }
 }
 
-fn has_config() -> Result<PathBuf, Box<dyn Error>> {
+fn has_config() -> Result<Option<PathBuf>, Box<dyn Error>> {
     let exe_path = match env::current_exe() {
         Ok(p) => p,
         Err(e) => {
@@ -99,19 +102,16 @@ fn has_config() -> Result<PathBuf, Box<dyn Error>> {
     config_path.push(CONF_DIR);
 
     if !config_path.exists() {
-        Err("configuration directory does not exist")?;
+        return Err("configuration directory does not exist")?;
     }
 
     config_path.push(String::from(exe_name) + ".conf");
 
     if !config_path.exists() {
-        Err(format!(
-            "configuration file does not exist at: {}",
-            config_path.display()
-        ))?;
+        return Ok(None);
     }
 
-    Ok(config_path)
+    Ok(Some(config_path))
 }
 
 struct Config {
