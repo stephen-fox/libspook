@@ -10,3 +10,6 @@ https://shonk.sh/posts/chasing-ghosts/"""
 
 [lib]
 crate-type = ["cdylib"]
+
+[features]
+debug = []

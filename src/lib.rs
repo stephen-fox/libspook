@@ -40,13 +40,24 @@ extern "system" fn DllMain(_: isize, call_reason: u32, _: *mut ()) -> bool {
 }
 
 fn attach() {
+    #[cfg(feature = "debug")]
+    dbg_msg_box(format!(
+        "loaded into: '{}'",
+        env::args().collect::<Vec<_>>().join(" ")
+    ));
+
     let conf_path = match has_config() {
         Ok(opt_path) => match opt_path {
             Some(path) => path,
-            None => return,
+            None => {
+                #[cfg(feature = "debug")]
+                dbg_msg_box("no config file or directory available".into());
+
+                return;
+            }
         },
         Err(e) => {
-            error_message_box(format!("failed to get config path - {e}"));
+            err_msg_box(format!("failed to get config path - {e}"));
             return;
         }
     };
@@ -54,10 +65,14 @@ fn attach() {
     let conf = match Config::from_path(conf_path) {
         Ok(c) => c,
         Err(e) => {
-            error_message_box(format!("failed to load config file - {e}"));
+            err_msg_box(format!("failed to load config file - {e}"));
             return;
         }
     };
+
+    // TODO: struct to string not working :(
+    #[cfg(feature = "debug")]
+    dbg_msg_box(format!("config found at: {conf:?}"));
 
     for lib_path in conf.load_libraries {
         let path_str = lib_path.display().to_string();
@@ -66,7 +81,7 @@ fn attach() {
 
         let h_dll = unsafe { LoadLibraryW(path_str_utf16.as_ptr()) };
         if h_dll.is_null() {
-            error_message_box(format!(
+            err_msg_box(format!(
                 "failed to load DLL ({path_str}) - last os error: {err}",
                 err = std::io::Error::last_os_error()
             ));
@@ -114,6 +129,7 @@ fn has_config() -> Result<Option<PathBuf>, Box<dyn Error>> {
     Ok(Some(config_path))
 }
 
+#[derive(Debug)]
 struct Config {
     load_libraries: Vec<PathBuf>,
 }
@@ -170,9 +186,18 @@ impl Config {
 }
 
 // https://github.com/microsoft/windows-rs/issues/973#issuecomment-1363481060
-fn error_message_box(msg: String) {
-    let msg = format!("🤕 {msg}\0");
-    let msg = msg.encode_utf16().collect::<Vec<_>>();
+fn err_msg_box(msg: String) {
+    msg_box(format!("🤕 {msg}"));
+}
+
+#[cfg(feature = "debug")]
+fn dbg_msg_box(msg: String) {
+    msg_box(format!("debug: {msg}"))
+}
+
+fn msg_box(msg: String) {
+    let mut msg = msg.encode_utf16().collect::<Vec<_>>();
+    msg.push(0x00);
 
     let mut title = LIBNAME.encode_utf16().collect::<Vec<_>>();
     title.push(0x00);
