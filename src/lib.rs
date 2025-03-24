@@ -85,11 +85,11 @@ fn has_config() -> Result<Option<PathBuf>, Box<dyn Error>> {
     };
 
     let Some(exe_name) = exe_path.file_name() else {
-        return Err("failed to get exe name")?;
+        return Err("failed to get exe basename")?;
     };
 
     let Some(exe_name) = exe_name.to_str() else {
-        return Err("failed to convert exe name os str to str")?;
+        return Err("failed to convert exe basename os str to str")?;
     };
 
     #[allow(deprecated)]
