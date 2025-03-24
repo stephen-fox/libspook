@@ -1,5 +1,5 @@
 #![allow(non_snake_case)]
-
+#[allow(deprecated)]
 use std::{
     env::{self, home_dir},
     error::Error,
@@ -86,6 +86,7 @@ fn has_config() -> Result<PathBuf, Box<dyn Error>> {
         return Err("failed to convert exe name os str to str")?;
     };
 
+    #[allow(deprecated)]
     let Some(home_path) = home_dir() else {
         return Err("failed to get home directory")?;
     };
