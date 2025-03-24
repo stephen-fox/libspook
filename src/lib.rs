@@ -102,7 +102,7 @@ fn has_config() -> Result<Option<PathBuf>, Box<dyn Error>> {
     config_path.push(CONF_DIR);
 
     if !config_path.exists() {
-        return Err("configuration directory does not exist")?;
+        return Ok(None);
     }
 
     config_path.push(String::from(exe_name) + ".conf");
