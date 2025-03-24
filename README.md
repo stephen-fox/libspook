@@ -2,8 +2,10 @@
 
 libspook loads other libraries by taking the place of a phantom library.
 
-Refer to this blog post for more information:
-https://shonk.sh/posts/chasing-ghosts/
+Refer to [Seung Kang's blog post][sk-blog-post] on phantom DLL hijacking for
+more information on the subject.
+
+[sk-blog-post]: https://shonk.sh/posts/chasing-ghosts/
 
 ## Building
 
@@ -21,4 +23,4 @@ Library gets created in:
 
 Copy the library into a directory in the library search paths.
 Make sure to rename it to match the name of the phantom
-(missing) library
+(missing) library.
