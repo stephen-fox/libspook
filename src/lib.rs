@@ -169,6 +169,10 @@ impl Config {
 
             key = key.trim();
 
+            if key.starts_with('#') {
+                continue;
+            }
+
             let Some(mut value) = splitter.next() else {
                 return Err(format!("line {line_num}: missing value"))?;
             };
