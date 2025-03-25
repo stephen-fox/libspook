@@ -66,7 +66,7 @@ fn attach() {
     let conf = match Config::from_path(conf_path) {
         Ok(c) => c,
         Err(e) => {
-            err_msg_box(format!("failed to load config file - {e}"));
+            err_msg_box(format!("failed to parse config file - {e}"));
             return;
         }
     };
