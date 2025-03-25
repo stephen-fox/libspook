@@ -63,7 +63,7 @@ fn attach() {
         }
     };
 
-    let conf = match Config::from_path(conf_path) {
+    let conf = match Config::from_path(&conf_path) {
         Ok(c) => c,
         Err(e) => {
             err_msg_box(format!("failed to parse config file - {e}"));
@@ -71,9 +71,12 @@ fn attach() {
         }
     };
 
-    // TODO: struct to string not working :(
     #[cfg(feature = "debug")]
-    dbg_msg_box(format!("config found at: {conf:?}"));
+    dbg_msg_box(format!(
+        "config file '{}': {}",
+        conf_path.clone().display(),
+        conf
+    ));
 
     for lib_path in conf.load_libraries {
         let path_str = lib_path.display().to_string();
@@ -130,13 +133,12 @@ fn has_config() -> Result<Option<PathBuf>, Box<dyn Error>> {
     Ok(Some(config_path))
 }
 
-#[derive(Debug)]
 struct Config {
     load_libraries: Vec<PathBuf>,
 }
 
 impl Config {
-    fn from_path(config_path: PathBuf) -> Result<Self, Box<dyn Error>> {
+    fn from_path(config_path: &PathBuf) -> Result<Self, Box<dyn Error>> {
         let f = match File::open(&config_path) {
             Ok(f) => f,
             Err(e) => Err(format!(
@@ -187,6 +189,36 @@ impl Config {
         }
 
         Ok(conf)
+    }
+}
+
+impl std::fmt::Display for Config {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut debug_s = f.debug_struct("Config");
+
+        let mut buf = String::new();
+
+        buf.push('[');
+
+        for (i, lib) in self.load_libraries.iter().enumerate() {
+            if i != 0 {
+                buf.push_str(", ");
+            }
+
+            buf.push('"');
+
+            buf.push_str(lib.to_str().unwrap_or("???"));
+
+            buf.push('"');
+        }
+
+        buf.push(']');
+
+        debug_s.field("load_libraries", &buf.as_str());
+
+        debug_s.finish()?;
+
+        Ok(())
     }
 }
 
