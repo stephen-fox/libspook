@@ -1,4 +1,5 @@
 #![allow(non_snake_case)]
+
 #[allow(deprecated)]
 use std::{
     env::{self, home_dir},
