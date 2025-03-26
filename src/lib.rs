@@ -163,7 +163,7 @@ struct Config {
 
 impl Config {
     fn from_path(config_path: &PathBuf) -> Result<Self, Box<dyn Error>> {
-        let f = match File::open(&config_path) {
+        let f = match File::open(config_path) {
             Ok(f) => f,
             Err(e) => Err(format!(
                 "failed to open config file at '{}' - {}",
