@@ -11,6 +11,7 @@ use std::{
 
 const LIBNAME: &str = "libspook";
 const CONF_DIR: &str = ".libspook";
+const NEWLINE: &str = "\r\n";
 
 // pub type HMODULE = *mut core::ffi::c_void
 // pub type HANDLE = *mut core::ffi::c_void
@@ -81,13 +82,17 @@ fn attach() {
 
     #[cfg(feature = "debug")]
     dbg_msg_box(format!(
-        "config file '{}': {}",
+        "config file: '{}'{}{}config contents:{}{}{}",
         conf_path.clone().display(),
+        NEWLINE,
+        NEWLINE,
+        NEWLINE,
+        NEWLINE,
         conf
     ));
 
-    for lib_path in conf.load_libraries {
-        let path_str = lib_path.display().to_string();
+    for library in conf.load_libraries {
+        let path_str = library.path.display().to_string();
         let mut path_str_utf16 = path_str.encode_utf16().collect::<Vec<_>>();
         path_str_utf16.push(0);
 
@@ -154,7 +159,7 @@ fn has_config(exe_name: &str) -> Result<Option<PathBuf>, Box<dyn Error>> {
 }
 
 struct Config {
-    load_libraries: Vec<PathBuf>,
+    load_libraries: Vec<LoadConfig>,
 }
 
 impl Config {
@@ -171,7 +176,7 @@ impl Config {
         let mut line_num: u32 = 0;
 
         let mut conf = Self {
-            load_libraries: Vec::<PathBuf>::new(),
+            load_libraries: Vec::new(),
         };
 
         for line in io::BufReader::new(f).lines() {
@@ -203,7 +208,9 @@ impl Config {
             value = value.trim();
 
             match key {
-                "load" => conf.load_libraries.push(PathBuf::from(value)),
+                "load" => conf.load_libraries.push(LoadConfig {
+                    path: PathBuf::from(value),
+                }),
                 _ => {}
             }
         }
@@ -214,31 +221,23 @@ impl Config {
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut debug_s = f.debug_struct("Config");
+        write!(f, "load_libraries:{}", NEWLINE)?;
 
-        let mut buf = String::new();
-
-        buf.push('[');
-
-        for (i, lib) in self.load_libraries.iter().enumerate() {
-            if i != 0 {
-                buf.push_str(", ");
-            }
-
-            buf.push('"');
-
-            buf.push_str(lib.to_str().unwrap_or("???"));
-
-            buf.push('"');
+        for lib in self.load_libraries.iter().enumerate() {
+            write!(f, "  - '{}'{}", lib.1, NEWLINE)?;
         }
 
-        buf.push(']');
-
-        debug_s.field("load_libraries", &buf.as_str());
-
-        debug_s.finish()?;
-
         Ok(())
+    }
+}
+
+struct LoadConfig {
+    path: PathBuf,
+}
+
+impl std::fmt::Display for LoadConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "path: '{}'", &self.path.to_str().unwrap_or("???"))
     }
 }
 
