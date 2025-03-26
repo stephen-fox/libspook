@@ -240,7 +240,6 @@ impl std::fmt::Display for LoadConfig {
     }
 }
 
-// https://github.com/microsoft/windows-rs/issues/973#issuecomment-1363481060
 fn err_msg_box(msg: String) {
     msg_box(format!("🤕 {msg}"));
 }
@@ -251,6 +250,7 @@ fn dbg_msg_box(msg: String) {
 }
 
 fn msg_box(msg: String) {
+    // https://github.com/microsoft/windows-rs/issues/973#issuecomment-1363481060
     let mut msg = msg.encode_utf16().collect::<Vec<_>>();
     msg.push(0x00);
 
