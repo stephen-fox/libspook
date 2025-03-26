@@ -6,8 +6,9 @@
 
 ## Testing / usability
 
-- Add support for test function using rundll32 entrypoint
-  - Parse config file and write details to stdout?
+- Add support for test program that either:
+  - parses config file and write details to stdout?
+  - loads the library, which will behave differently in this mode
 
 ## Config
 
