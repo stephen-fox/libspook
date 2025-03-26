@@ -31,7 +31,7 @@ extern "system" {
 #[allow(unused_variables)]
 extern "system" fn DllMain(_: isize, call_reason: u32, _: *mut ()) -> bool {
     // https://learn.microsoft.com/en-us/windows/win32/dlls/dllmain
-    const DLL_PROCESS_ATTACH: u32 = 1u32;
+    const DLL_PROCESS_ATTACH: u32 = 1;
 
     if call_reason == DLL_PROCESS_ATTACH {
         attach();
