@@ -41,13 +41,21 @@ extern "system" fn DllMain(_: isize, call_reason: u32, _: *mut ()) -> bool {
 }
 
 fn attach() {
+    let proc_info = match ProcInfo::get() {
+        Ok(info) => info,
+        Err(err) => {
+            err_msg_box(format!("failed to get process info - {err}"));
+            return;
+        }
+    };
+
     #[cfg(feature = "debug")]
     dbg_msg_box(format!(
         "loaded into: '{}'",
         env::args().collect::<Vec<_>>().join(" ")
     ));
 
-    let conf_path = match has_config() {
+    let conf_path = match has_config(&proc_info.exe_name) {
         Ok(opt_path) => match opt_path {
             Some(path) => path,
             None => {
@@ -95,22 +103,34 @@ fn attach() {
     }
 }
 
-fn has_config() -> Result<Option<PathBuf>, Box<dyn Error>> {
-    let exe_path = match env::current_exe() {
-        Ok(p) => p,
-        Err(e) => {
-            return Err(format!("failed to get current exe path: {e}"))?;
-        }
-    };
+struct ProcInfo {
+    exe_name: String,
+}
 
-    let Some(exe_name) = exe_path.file_name() else {
-        return Err("failed to get exe basename")?;
-    };
+impl ProcInfo {
+    fn get() -> Result<Self, Box<dyn Error>> {
+        let exe_path = match env::current_exe() {
+            Ok(path) => path,
+            Err(err) => {
+                return Err(format!("failed to get current exe path - {err}"))?;
+            }
+        };
 
-    let Some(exe_name) = exe_name.to_str() else {
-        return Err("failed to convert exe basename os str to str")?;
-    };
+        let Some(exe_name) = exe_path.file_name() else {
+            return Err("failed to get exe basename")?;
+        };
 
+        let Some(exe_name) = exe_name.to_str() else {
+            return Err("failed to convert exe basename os str to str")?;
+        };
+
+        Ok(Self {
+            exe_name: String::from(exe_name),
+        })
+    }
+}
+
+fn has_config(exe_name: &str) -> Result<Option<PathBuf>, Box<dyn Error>> {
     #[allow(deprecated)]
     let Some(home_path) = home_dir() else {
         return Err("failed to get home directory")?;
