@@ -81,10 +81,8 @@ fn attach() {
 
     #[cfg(feature = "debug")]
     dbg_msg_box(format!(
-        "config file: '{}'{}{}config contents:{}{}{}",
+        "parsed config: '{}'{}{}{}",
         conf_path.clone().display(),
-        NEWLINE,
-        NEWLINE,
         NEWLINE,
         NEWLINE,
         conf
@@ -97,9 +95,16 @@ fn attach() {
 
         let h_dll = unsafe { LoadLibraryW(path_str_utf16.as_ptr()) };
         if h_dll.is_null() {
+            let err = std::io::Error::last_os_error();
+            let code = err.raw_os_error().unwrap_or(0);
+
+            if library.allow_init_failure && code == 1114 {
+                // 1114 == DllMain returned false / init failure
+                continue;
+            }
+
             err_msg_box(format!(
-                "failed to load DLL ({path_str}) - last os error: {err}",
-                err = std::io::Error::last_os_error()
+                "failed to load DLL ({path_str}) - last os error: {err}"
             ));
 
             return;
@@ -209,7 +214,24 @@ impl Config {
             match key {
                 "load" => conf.load_libraries.push(LoadConfig {
                     path: PathBuf::from(value),
+                    allow_init_failure: false,
                 }),
+                "allow_init_failure" => {
+                    let lib = match conf.load_libraries.last_mut() {
+                        Some(lib) => lib,
+                        None => {
+                            return Err(format!(
+                                "line {line_num}: 'allow_init_failure' must come after 'load'"
+                            ))?;
+                        }
+                    };
+
+                    lib.allow_init_failure = value.parse().map_err(|err| {
+                        format!(
+                            "line {line_num}: failed to parse 'allow_init_failure' value - {err}"
+                        )
+                    })?;
+                }
                 _ => {}
             }
         }
@@ -220,10 +242,10 @@ impl Config {
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "load_libraries:{}", NEWLINE)?;
+        write!(f, "load_libraries:{NEWLINE}")?;
 
         for lib in self.load_libraries.iter().enumerate() {
-            write!(f, "  - '{}'{}", lib.1, NEWLINE)?;
+            write!(f, "{}{}", lib.1, NEWLINE)?;
         }
 
         Ok(())
@@ -232,11 +254,20 @@ impl std::fmt::Display for Config {
 
 struct LoadConfig {
     path: PathBuf,
+    allow_init_failure: bool,
 }
 
 impl std::fmt::Display for LoadConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "path: '{}'", &self.path.to_str().unwrap_or("???"))
+        let pad = "  ";
+
+        write!(
+            f,
+            "{pad}path: '{}'{NEWLINE}",
+            &self.path.to_str().unwrap_or("???"),
+        )?;
+
+        write!(f, "{pad}allow_init_failure: {}", self.allow_init_failure)
     }
 }
 
