@@ -12,7 +12,4 @@
 
 ## Config
 
-- Create a new struct for `load_libraries` field
-  - Implement std::fmt::Display for new struct
-  - Add param to allow LoadLibrary calls to fail
 - Abstract config parser to accept io::BufReader / similar abstraction
