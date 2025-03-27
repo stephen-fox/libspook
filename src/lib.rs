@@ -41,6 +41,12 @@ extern "system" fn DllMain(_: isize, call_reason: u32, _: *mut ()) -> bool {
 }
 
 fn attach() {
+    #[cfg(feature = "debug")]
+    dbg_msg_box(format!(
+        "loaded into: '{}'",
+        env::args().collect::<Vec<_>>().join(" ")
+    ));
+
     let proc_info = match ProcInfo::get() {
         Ok(info) => info,
         Err(err) => {
@@ -48,12 +54,6 @@ fn attach() {
             return;
         }
     };
-
-    #[cfg(feature = "debug")]
-    dbg_msg_box(format!(
-        "loaded into: '{}'",
-        env::args().collect::<Vec<_>>().join(" ")
-    ));
 
     let conf_path = match has_config(&proc_info.exe_name) {
         Ok(opt_path) => match opt_path {
