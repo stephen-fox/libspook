@@ -65,16 +65,16 @@ fn attach() {
                 return;
             }
         },
-        Err(e) => {
-            err_msg_box(format!("failed to get config path - {e}"));
+        Err(err) => {
+            err_msg_box(format!("failed to get config path - {err}"));
             return;
         }
     };
 
     let conf = match Config::from_path(&conf_path) {
         Ok(c) => c,
-        Err(e) => {
-            err_msg_box(format!("failed to parse config file - {e}"));
+        Err(err) => {
+            err_msg_box(format!("failed to parse config file - {err}"));
             return;
         }
     };
@@ -168,12 +168,12 @@ struct Config {
 
 impl Config {
     fn from_path(config_path: &PathBuf) -> Result<Self, Box<dyn Error>> {
-        let f = match File::open(config_path) {
+        let file = match File::open(config_path) {
             Ok(f) => f,
-            Err(e) => Err(format!(
+            Err(err) => Err(format!(
                 "failed to open config file at '{}' - {}",
                 config_path.display(),
-                e
+                err
             ))?,
         };
 
@@ -183,7 +183,7 @@ impl Config {
             load_libraries: Vec::new(),
         };
 
-        for line in io::BufReader::new(f).lines() {
+        for line in io::BufReader::new(file).lines() {
             line_num += 1;
 
             let line = match line {
