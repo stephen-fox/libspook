@@ -238,7 +238,7 @@ impl Config {
                     .parse()
                     .map_err(|err| format!("failed to parse 'allow_init_failure' value - {err}"))?;
             }
-            _ => {} // TODO: Handle unknown param.
+            _ => return Err(format!("unknown parameter: '{key}'"))?,
         }
 
         Ok(())
