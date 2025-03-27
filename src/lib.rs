@@ -193,50 +193,55 @@ impl Config {
                 }
             };
 
-            let mut splitter = line.splitn(2, '=');
-
-            let Some(mut key) = splitter.next() else {
-                return Err(format!("line {line_num}: missing parameter name"))?;
-            };
-
-            key = key.trim();
-
-            if key.starts_with('#') {
-                continue;
-            }
-
-            let Some(mut value) = splitter.next() else {
-                return Err(format!("line {line_num}: missing value"))?;
-            };
-
-            value = value.trim();
-
-            match key {
-                "load" => conf.load_libraries.push(LoadConfig {
-                    path: PathBuf::from(value),
-                    allow_init_failure: false,
-                }),
-                "allow_init_failure" => {
-                    let lib = match conf.load_libraries.last_mut() {
-                        Some(lib) => lib,
-                        None => {
-                            return Err(format!(
-                                "line {line_num}: 'allow_init_failure' must come after 'load'"
-                            ))?;
-                        }
-                    };
-
-                    lib.allow_init_failure = value.parse().map_err(|err| {
-                        format!(
-                            "line {line_num}: failed to parse 'allow_init_failure' value - {err}"
-                        )
-                    })?;
-                }
-                _ => {}
+            match conf.parse_line(line) {
+                Ok(()) => {}
+                Err(err) => return Err(format!("line {line_num}: {err}"))?,
             }
         }
 
         Ok(conf)
+    }
+
+    fn parse_line(&mut self, line: String) -> Result<(), Box<dyn Error>> {
+        let mut splitter = line.splitn(2, '=');
+
+        let Some(mut key) = splitter.next() else {
+            return Err("missing parameter name")?;
+        };
+
+        key = key.trim();
+
+        if key.starts_with('#') {
+            return Ok(());
+        }
+
+        let Some(mut value) = splitter.next() else {
+            return Err("missing value")?;
+        };
+
+        value = value.trim();
+
+        match key {
+            "load" => self.load_libraries.push(LoadConfig {
+                path: PathBuf::from(value),
+                allow_init_failure: false,
+            }),
+            "allow_init_failure" => {
+                let lib = match self.load_libraries.last_mut() {
+                    Some(lib) => lib,
+                    None => {
+                        return Err("'allow_init_failure' must appear after 'load'")?;
+                    }
+                };
+
+                lib.allow_init_failure = value
+                    .parse()
+                    .map_err(|err| format!("failed to parse 'allow_init_failure' value - {err}"))?;
+            }
+            _ => {} // TODO: Handle unknown param.
+        }
+
+        Ok(())
     }
 }
 
