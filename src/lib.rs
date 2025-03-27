@@ -203,6 +203,12 @@ impl Config {
     }
 
     fn parse_line(&mut self, line: String) -> Result<(), Box<dyn Error>> {
+        let line = line.trim();
+
+        if line.is_empty() || line.starts_with('#') {
+            return Ok(());
+        }
+
         let mut splitter = line.splitn(2, '=');
 
         let Some(mut key) = splitter.next() else {
@@ -210,10 +216,6 @@ impl Config {
         };
 
         key = key.trim();
-
-        if key.starts_with('#') {
-            return Ok(());
-        }
 
         let Some(mut value) = splitter.next() else {
             return Err("missing value")?;
