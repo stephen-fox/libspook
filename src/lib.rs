@@ -144,7 +144,7 @@ struct Config {
 
 impl Config {
     fn from_default_path() -> Result<Option<Self>, Box<dyn Error>> {
-        match Self::config_path() {
+        match Self::default_config_path() {
             Ok(maybe_path_exists) => match maybe_path_exists {
                 Some(path) => Ok(Some(Self::from_path(&path)?)),
                 None => Ok(None),
@@ -153,7 +153,7 @@ impl Config {
         }
     }
 
-    fn config_path() -> Result<Option<PathBuf>, Box<dyn Error>> {
+    fn default_config_path() -> Result<Option<PathBuf>, Box<dyn Error>> {
         #[allow(deprecated)]
         let Some(mut config_path) = home_dir() else {
             return Err("failed to get home directory")?;
