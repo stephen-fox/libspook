@@ -85,6 +85,7 @@ fn attach() {
 
     for library in &proc_config.load_libraries {
         let path_str = library.path.display().to_string();
+
         let mut path_str_utf16 = path_str.encode_utf16().collect::<Vec<_>>();
         path_str_utf16.push(0);
 
@@ -98,9 +99,7 @@ fn attach() {
                 continue;
             }
 
-            err_msg_box(format!(
-                "failed to load DLL ({path_str}) - last os error: {err}"
-            ));
+            err_msg_box(format!("failed to load '{path_str}' - {err}"));
 
             return;
         }
