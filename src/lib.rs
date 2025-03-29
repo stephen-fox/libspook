@@ -9,13 +9,11 @@ use std::{
     path::PathBuf,
 };
 
-const LIBNAME: &str = "libspook";
-const CONF_DIR: &str = ".libspook";
 const NEWLINE: &str = "\r\n";
 
 // pub type HMODULE = *mut core::ffi::c_void
 // pub type HANDLE = *mut core::ffi::c_void
-// pub type PCWSTR = *const u16 (and LPWSTR)
+// pub type PCWSTR/LPWSTR = *const u16
 
 #[link(name = "kernel32")]
 extern "system" {
@@ -157,13 +155,13 @@ impl Config {
             return Err("failed to get home directory")?;
         };
 
-        config_path.push(CONF_DIR);
+        config_path.push(String::from(".") + env!("CARGO_PKG_NAME"));
 
         if !config_path.exists() {
             return Ok(None);
         }
 
-        config_path.push(String::from(LIBNAME) + ".conf");
+        config_path.push(String::from(env!("CARGO_PKG_NAME")) + ".conf");
 
         if !config_path.exists() {
             return Ok(None);
@@ -393,7 +391,10 @@ fn msg_box(msg: String) {
     let mut msg = msg.encode_utf16().collect::<Vec<_>>();
     msg.push(0x00);
 
-    let mut title = LIBNAME.encode_utf16().collect::<Vec<_>>();
+    let mut title = format!("{} {}", env!("CARGO_PKG_NAME"), env!("CARGO_PKG_VERSION"))
+        .encode_utf16()
+        .collect::<Vec<_>>();
+
     title.push(0x00);
 
     unsafe {
