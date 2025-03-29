@@ -51,44 +51,41 @@ fn attach() {
         Ok(info) => info,
         Err(err) => {
             err_msg_box(format!("failed to get process info - {err}"));
+
             return;
         }
     };
 
-    let conf_path = match has_config(&proc_info.exe_name) {
-        Ok(opt_path) => match opt_path {
-            Some(path) => path,
-            None => {
+    let config = match Config::from_default_path() {
+        Ok(opt) => {
+            if opt.is_none() {
                 #[cfg(feature = "debug")]
-                dbg_msg_box("no config file or directory available".into());
-
-                return;
+                dbg_msg_box("config directory or file does not exist".into())
             }
-        },
-        Err(err) => {
-            err_msg_box(format!("failed to get config path - {err}"));
-            return;
-        }
-    };
 
-    let conf = match Config::from_path(&conf_path) {
-        Ok(c) => c,
+            opt.unwrap()
+        }
         Err(err) => {
-            err_msg_box(format!("failed to parse config file - {err}"));
+            err_msg_box(format!("failed to get configuration file - {err}"));
+
             return;
         }
     };
 
     #[cfg(feature = "debug")]
-    dbg_msg_box(format!(
-        "parsed config: '{}'{}{}{}",
-        conf_path.clone().display(),
-        NEWLINE,
-        NEWLINE,
-        conf
-    ));
+    dbg_msg_box(format!("parsed config:{NEWLINE}{NEWLINE}{config}"));
 
-    for library in conf.load_libraries {
+    let proc_config = match config.proc_config_for_exe(&proc_info.exe_name) {
+        Some(pc) => pc,
+        None => {
+            #[cfg(feature = "debug")]
+            dbg_msg_box(format!("no config defined for exe {}", &proc_info.exe_name));
+
+            return;
+        }
+    };
+
+    for library in &proc_config.load_libraries {
         let path_str = library.path.display().to_string();
         let mut path_str_utf16 = path_str.encode_utf16().collect::<Vec<_>>();
         path_str_utf16.push(0);
@@ -139,34 +136,42 @@ impl ProcInfo {
     }
 }
 
-fn has_config(exe_name: &str) -> Result<Option<PathBuf>, Box<dyn Error>> {
-    #[allow(deprecated)]
-    let Some(home_path) = home_dir() else {
-        return Err("failed to get home directory")?;
-    };
-
-    let mut config_path = PathBuf::from(home_path);
-
-    config_path.push(CONF_DIR);
-
-    if !config_path.exists() {
-        return Ok(None);
-    }
-
-    config_path.push(String::from(exe_name) + ".conf");
-
-    if !config_path.exists() {
-        return Ok(None);
-    }
-
-    Ok(Some(config_path))
-}
-
 struct Config {
-    load_libraries: Vec<LoadConfig>,
+    proc_configs: Vec<ProcConfig>,
 }
 
 impl Config {
+    fn from_default_path() -> Result<Option<Self>, Box<dyn Error>> {
+        match Self::config_path() {
+            Ok(maybe_path_exists) => match maybe_path_exists {
+                Some(path) => Ok(Some(Self::from_path(&path)?)),
+                None => Ok(None),
+            },
+            Err(err) => Err(err)?,
+        }
+    }
+
+    fn config_path() -> Result<Option<PathBuf>, Box<dyn Error>> {
+        #[allow(deprecated)]
+        let Some(mut config_path) = home_dir() else {
+            return Err("failed to get home directory")?;
+        };
+
+        config_path.push(CONF_DIR);
+
+        if !config_path.exists() {
+            return Ok(None);
+        }
+
+        config_path.push(String::from(LIBNAME) + ".conf");
+
+        if !config_path.exists() {
+            return Ok(None);
+        }
+
+        Ok(Some(config_path))
+    }
+
     fn from_path(config_path: &PathBuf) -> Result<Self, Box<dyn Error>> {
         let file = match File::open(config_path) {
             Ok(f) => f,
@@ -179,8 +184,11 @@ impl Config {
 
         let mut line_num: u32 = 0;
 
-        let mut conf = Self {
-            load_libraries: Vec::new(),
+        let mut parser = ConfigParser {
+            config: Config {
+                proc_configs: Vec::new(),
+            },
+            on_general: false,
         };
 
         for line in io::BufReader::new(file).lines() {
@@ -193,19 +201,55 @@ impl Config {
                 }
             };
 
-            match conf.parse_line(line) {
+            match parser.parse_line(line) {
                 Ok(()) => {}
                 Err(err) => return Err(format!("line {line_num}: {err}"))?,
             }
         }
 
-        Ok(conf)
+        Ok(parser.config)
     }
 
+    fn proc_config_for_exe(self, exe_name: &str) -> Option<ProcConfig> {
+        self.proc_configs
+            .iter()
+            .find(|config| config.exe_name == exe_name)
+            .cloned()
+    }
+}
+
+struct ConfigParser {
+    config: Config,
+    on_general: bool,
+}
+
+impl ConfigParser {
     fn parse_line(&mut self, line: String) -> Result<(), Box<dyn Error>> {
         let line = line.trim();
 
         if line.is_empty() || line.starts_with('#') {
+            return Ok(());
+        }
+
+        let section = match ConfigParser::is_section(line) {
+            Ok(s) => s,
+            Err(err) => return Err(format!("failed to parse section header - {err}"))?,
+        };
+
+        if let Some(section_name) = section {
+            if section_name == "general" {
+                self.on_general = true;
+
+                return Ok(());
+            }
+
+            self.on_general = false;
+
+            self.config.proc_configs.push(ProcConfig {
+                exe_name: String::from(section_name),
+                load_libraries: Vec::new(),
+            });
+
             return Ok(());
         }
 
@@ -223,20 +267,58 @@ impl Config {
 
         value = value.trim();
 
+        if self.on_general {
+            // TODO
+        } else {
+            self.parse_proc_key_value(key, value)?;
+        }
+
+        Ok(())
+    }
+
+    fn is_section(line: &str) -> Result<Option<&str>, Box<dyn Error>> {
+        if !line.starts_with('[') {
+            return Ok(None);
+        }
+
+        let line = match line.strip_prefix('[') {
+            Some(l) => l,
+            None => return Err("missing section name and closing brack")?,
+        };
+
+        let line = match line.strip_suffix(']') {
+            Some(l) => l,
+            None => return Err("missing section name")?,
+        };
+
+        let line = line.trim();
+
+        if line.is_empty() {
+            return Err("missing section name is empty space")?;
+        }
+
+        Ok(Some(line))
+    }
+
+    fn parse_proc_key_value(&mut self, key: &str, value: &str) -> Result<(), Box<dyn Error>> {
+        let Some(proc_config) = self.config.proc_configs.last_mut() else {
+            return Err("parameter '{key}' must be defined in a process section")?;
+        };
+
         match key {
-            "load" => self.load_libraries.push(LoadConfig {
+            "load" => proc_config.load_libraries.push(LoadConfig {
                 path: PathBuf::from(value),
                 allow_init_failure: false,
             }),
             "allow_init_failure" => {
-                let lib = match self.load_libraries.last_mut() {
+                let load = match proc_config.load_libraries.last_mut() {
                     Some(lib) => lib,
                     None => {
                         return Err("'allow_init_failure' must appear after 'load'")?;
                     }
                 };
 
-                lib.allow_init_failure = value
+                load.allow_init_failure = value
                     .parse()
                     .map_err(|err| format!("failed to parse 'allow_init_failure' value - {err}"))?;
             }
@@ -249,7 +331,27 @@ impl Config {
 
 impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "load_libraries:{NEWLINE}")?;
+        write!(f, "[general]{NEWLINE}")?;
+
+        // TODO: General fields.
+
+        for proc_config in self.proc_configs.iter().enumerate() {
+            write!(f, "{}{}", NEWLINE, proc_config.1)?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+struct ProcConfig {
+    exe_name: String,
+    load_libraries: Vec<LoadConfig>,
+}
+
+impl std::fmt::Display for ProcConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{}]{}", self.exe_name, NEWLINE)?;
 
         for lib in self.load_libraries.iter().enumerate() {
             write!(f, "{}{}", lib.1, NEWLINE)?;
@@ -259,6 +361,7 @@ impl std::fmt::Display for Config {
     }
 }
 
+#[derive(Clone)]
 struct LoadConfig {
     path: PathBuf,
     allow_init_failure: bool,
@@ -266,15 +369,13 @@ struct LoadConfig {
 
 impl std::fmt::Display for LoadConfig {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let pad = "  ";
-
         write!(
             f,
-            "{pad}path: '{}'{NEWLINE}",
+            "path = '{}'{NEWLINE}",
             &self.path.to_str().unwrap_or("???"),
         )?;
 
-        write!(f, "{pad}allow_init_failure: {}", self.allow_init_failure)
+        write!(f, "allow_init_failure = {}", self.allow_init_failure)
     }
 }
 
