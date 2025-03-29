@@ -280,7 +280,7 @@ impl ConfigParser {
 
         let line = match line.strip_prefix('[') {
             Some(l) => l,
-            None => return Err("missing section name and closing brack")?,
+            None => return Err("missing section name and closing bracket")?,
         };
 
         let line = match line.strip_suffix(']') {
@@ -291,7 +291,7 @@ impl ConfigParser {
         let line = line.trim();
 
         if line.is_empty() {
-            return Err("missing section name is empty space")?;
+            return Err("section name is empty space")?;
         }
 
         Ok(Some(line))
