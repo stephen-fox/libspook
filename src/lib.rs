@@ -70,14 +70,18 @@ fn attach() {
         }
     };
 
-    #[cfg(feature = "debug")]
-    dbg_msg_box(format!("parsed config:{NEWLINE}{NEWLINE}{config}"));
+    let debug = config.debug || cfg!(feature = "debug");
+
+    if debug {
+        dbg_msg_box(format!("parsed config:{NEWLINE}{NEWLINE}{config}"));
+    }
 
     let proc_config = match config.proc_config_for_exe(&proc_info.exe_name) {
         Some(pc) => pc,
         None => {
-            #[cfg(feature = "debug")]
-            dbg_msg_box(format!("no config defined for exe {}", &proc_info.exe_name));
+            if debug {
+                dbg_msg_box(format!("no config defined for exe {}", &proc_info.exe_name));
+            }
 
             return;
         }
@@ -134,6 +138,7 @@ impl ProcInfo {
 }
 
 struct Config {
+    debug: bool,
     proc_configs: Vec<ProcConfig>,
 }
 
@@ -183,6 +188,7 @@ impl Config {
 
         let mut parser = ConfigParser {
             config: Config {
+                debug: false,
                 proc_configs: Vec::new(),
             },
             on_general: false,
@@ -265,9 +271,11 @@ impl ConfigParser {
         value = value.trim();
 
         if self.on_general {
-            // TODO
+            self.parse_general_param(key, value)
+                .map_err(|err| format!("failed to parse general section - {err}"))?;
         } else {
-            self.parse_proc_key_value(key, value)?;
+            self.parse_proc_param(key, value)
+                .map_err(|err| format!("failed to parse process section - {err}"))?;
         }
 
         Ok(())
@@ -297,7 +305,7 @@ impl ConfigParser {
         Ok(Some(line))
     }
 
-    fn parse_proc_key_value(&mut self, key: &str, value: &str) -> Result<(), Box<dyn Error>> {
+    fn parse_proc_param(&mut self, key: &str, value: &str) -> Result<(), Box<dyn Error>> {
         let Some(proc_config) = self.config.proc_configs.last_mut() else {
             return Err("parameter '{key}' must be defined in a process section")?;
         };
@@ -311,16 +319,29 @@ impl ConfigParser {
                 let load = match proc_config.load_libraries.last_mut() {
                     Some(lib) => lib,
                     None => {
-                        return Err("'allow_init_failure' must appear after 'load'")?;
+                        return Err(format!("'{key}' must appear after 'load'"))?;
                     }
                 };
 
                 load.allow_init_failure = value
                     .parse()
-                    .map_err(|err| format!("failed to parse 'allow_init_failure' value - {err}"))?;
+                    .map_err(|err| format!("failed to parse '{key}' value - {err}"))?;
             }
             _ => return Err(format!("unknown parameter: '{key}'"))?,
         }
+
+        Ok(())
+    }
+
+    fn parse_general_param(&mut self, key: &str, value: &str) -> Result<(), Box<dyn Error>> {
+        match key {
+            "debug" => {
+                self.config.debug = value
+                    .parse()
+                    .map_err(|err| format!("failed to parse '{key}' value - {err}"))?;
+            }
+            _ => return Err(format!("unknown parameter: '{key}'"))?,
+        };
 
         Ok(())
     }
@@ -330,7 +351,7 @@ impl std::fmt::Display for Config {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "[general]{NEWLINE}")?;
 
-        // TODO: General fields.
+        write!(f, "debug = {}{}", self.debug, NEWLINE)?;
 
         for proc_config in self.proc_configs.iter().enumerate() {
             write!(f, "{}{}", NEWLINE, proc_config.1)?;
@@ -380,7 +401,6 @@ fn err_msg_box(msg: String) {
     msg_box(format!("🤕 {msg}"));
 }
 
-#[cfg(feature = "debug")]
 fn dbg_msg_box(msg: String) {
     msg_box(format!("debug: {msg}"))
 }
