@@ -3,10 +3,9 @@ name = "libspook"
 version = "0.1.0"
 edition = "2021"
 description = """
-libspook loads other libraries by taking the place of a phantom library.
-
-Refer to this blog post for more information:
-https://shonk.sh/posts/chasing-ghosts/"""
+libspook injects libraries into a process by taking advantage of a very
+specific form of phantom DLL hijacking.
+"""
 
 [lib]
 crate-type = ["cdylib"]
