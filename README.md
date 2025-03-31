@@ -67,19 +67,26 @@ is loaded. The file uses a simple `ini` syntax consisting of sections
 named after the executable that loaded it and an optional `general`
 section. Comments can be specified using `#`.
 
+### Example configuration file
+
 For example, the following configuration file loads `example.dll`
 when libspook is loaded by `foo.exe`:
 
 ```ini
 # This is an example comment :)
+# Note: An empty configuration file is also valid.
+
+[general]
+debug = false
+
 [foo.exe]
 load = C:\Users\user\projects\example\example.dll
 ```
 
 #### `general` section
 
-This section configures general libspook settings. The following parameters
-can be specified in this section:
+This optional section configures general libspook settings. The following
+parameters can be specified in this section:
 
 - `debug` (`bool`, default: `false`) - When set to `true`, display message
   boxes containing information about the process and libspook
