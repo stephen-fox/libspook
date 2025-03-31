@@ -69,8 +69,8 @@ section. Comments can be specified using `#`.
 
 ### Example configuration file
 
-For example, the following configuration file loads `example.dll`
-when libspook is loaded by `foo.exe`:
+The following example configuration file loads `example.dll` when libspook
+is loaded by `foo.exe`:
 
 ```ini
 # This is an example comment :)
