@@ -32,15 +32,29 @@ Note: It is strongly recommended to use [`rustup`](https://rustup.rs/)
 to install the Rust compiler. Changing compiler targets may not work
 correctly otherwise.
 
-1. `rustup install stable-i686-pc-windows-msvc`
-2. `cargo build`
+#### Windows x86 32-bit
+
+```sh
+rustup install stable-i686-pc-windows-msvc
+
+cargo build --target i686-pc-windows-msvc
+
+# ... or using this project's build alias:
+cargo build_wx86
+```
 
 Library gets created in:
   `PROJECT-PATH/target/i686-pc-windows-msvc/debug/libspook.dll`
 
+#### Build options
+
 In addition to the `debug` configuration setting (discussed below),
 additional debug information can be obtained at runtime by building
-libspook with the arguments: `--features debug`.
+libspook with:
+
+```sh
+cargo build --features debug
+```
 
 ## Usage
 
