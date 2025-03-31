@@ -1,9 +1,5 @@
 # TODO
 
-## README
-
-- Document configuration format and usage
-
 ## Testing / usability
 
 - Add support for test program that either:
