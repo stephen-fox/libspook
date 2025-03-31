@@ -5,7 +5,8 @@ specific form of [phantom DLL hijacking][mitre-phantom-dll]. It assumes
 the vulnerable process will gracefully ignore phantom libraries that
 return `false` from [`DllMain`][ms-dllmain-doc]. Returning false results
 in a null pointer being returned to the code that attempted to load
-libspook, giving the vulnerable code a chance to ignore the load failure.
+libspook, giving the vulnerable code a chance to ignore the load failure
+while simultaneously allowing libspook to execute its code.
 
 This project currently only supports Windows, though support for
 Unix-like systems can be added in the future.
