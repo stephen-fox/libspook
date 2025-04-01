@@ -26,25 +26,37 @@ of phantom DLL hijacking.
 - Uses a simple `ini` configuration file (with comment support!)
 - No external dependencies
 
-## Building
+## Requirements
+
+- git
+- Rust (cargo)
 
 Note: It is strongly recommended to use [`rustup`](https://rustup.rs/)
 to install the Rust compiler. Changing compiler targets may not work
 correctly otherwise.
 
+## Building
+
+Building libspook is dependent on the vulnerable program. On Windows,
+a 32-bit program cannot load a 64-bit DLL. In such a case, libspook
+will need to be built as a 32-bit library.
+
 #### Windows x86 32-bit
 
+To compile for Windows x86 32-bit, execute the following in a shell:
+
 ```sh
+# Install the Rust toolchain (you only need to do this once):
 rustup install stable-i686-pc-windows-msvc
 
+# Build it:
 cargo build --target i686-pc-windows-msvc
-
-# ... or using this project's build alias:
+# ...or build it using the project's build alias:
 cargo build_wx86
-```
 
-Library gets created in:
-  `PROJECT-PATH/target/i686-pc-windows-msvc/debug/libspook.dll`
+# Library gets created in:
+# PROJECT-PATH/target/i686-pc-windows-msvc/debug/libspook.dll
+```
 
 #### Build options
 
