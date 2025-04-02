@@ -57,7 +57,9 @@ fn attach() {
         Ok(opt) => {
             if opt.is_none() {
                 #[cfg(feature = "debug")]
-                dbg_msg_box("config directory or file does not exist".into())
+                dbg_msg_box("config directory or file does not exist".into());
+
+                return;
             }
 
             opt.unwrap()
