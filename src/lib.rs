@@ -54,7 +54,7 @@ fn attach() {
         }
     };
 
-    let config = match Config::from_default_path() {
+    let config = match ConfigParser::parse_default_path() {
         Ok(opt) => {
             if opt.is_none() {
                 #[cfg(feature = "debug")]
@@ -143,10 +143,24 @@ struct Config {
 }
 
 impl Config {
-    fn from_default_path() -> Result<Option<Self>, Box<dyn Error>> {
+    fn proc_config_for_exe(self, exe_name: &str) -> Option<ProcConfig> {
+        self.proc_configs
+            .iter()
+            .find(|config| config.exe_name == exe_name)
+            .cloned()
+    }
+}
+
+struct ConfigParser {
+    config: Config,
+    on_general: bool,
+}
+
+impl ConfigParser {
+    fn parse_default_path() -> Result<Option<Config>, Box<dyn Error>> {
         match Self::default_config_path() {
             Ok(maybe_path_exists) => match maybe_path_exists {
-                Some(path) => Ok(Some(Self::from_path(&path)?)),
+                Some(path) => Ok(Some(Self::parse_path(&path)?)),
                 None => Ok(None),
             },
             Err(err) => Err(err)?,
@@ -174,7 +188,7 @@ impl Config {
         Ok(Some(config_path))
     }
 
-    fn from_path(config_path: &PathBuf) -> Result<Self, Box<dyn Error>> {
+    fn parse_path(config_path: &PathBuf) -> Result<Config, Box<dyn Error>> {
         let file = match File::open(config_path) {
             Ok(f) => f,
             Err(err) => Err(format!(
@@ -184,8 +198,6 @@ impl Config {
             ))?,
         };
 
-        let mut line_num: u32 = 0;
-
         let mut parser = ConfigParser {
             config: Config {
                 debug: false,
@@ -194,7 +206,17 @@ impl Config {
             on_general: false,
         };
 
-        for line in io::BufReader::new(file).lines() {
+        let mut buf_reader = io::BufReader::new(file);
+
+        parser.parse(&mut buf_reader)?;
+
+        Ok(parser.config)
+    }
+
+    fn parse<R: io::BufRead>(&mut self, buf_reader: &mut R) -> Result<(), Box<dyn Error>> {
+        let mut line_num = 0;
+
+        for line in buf_reader.lines() {
             line_num += 1;
 
             let line = match line {
@@ -204,29 +226,15 @@ impl Config {
                 }
             };
 
-            match parser.parse_line(line) {
+            match self.parse_line(line) {
                 Ok(()) => {}
                 Err(err) => return Err(format!("line {line_num}: {err}"))?,
             }
         }
 
-        Ok(parser.config)
+        Ok(())
     }
 
-    fn proc_config_for_exe(self, exe_name: &str) -> Option<ProcConfig> {
-        self.proc_configs
-            .iter()
-            .find(|config| config.exe_name == exe_name)
-            .cloned()
-    }
-}
-
-struct ConfigParser {
-    config: Config,
-    on_general: bool,
-}
-
-impl ConfigParser {
     fn parse_line(&mut self, line: String) -> Result<(), Box<dyn Error>> {
         let line = line.trim();
 
