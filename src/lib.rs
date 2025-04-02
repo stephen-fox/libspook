@@ -212,6 +212,8 @@ impl ConfigParser {
         Ok(parser.config)
     }
 
+    // Based on code / explanation by stackoverflow user PossiblyAShrub:
+    // https://stackoverflow.com/a/70573768
     fn parse<R: io::BufRead>(&mut self, buf_reader: &mut R) -> Result<(), Box<dyn Error>> {
         let mut line_num = 0;
 
