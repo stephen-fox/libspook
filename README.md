@@ -31,15 +31,23 @@ of phantom DLL hijacking.
 - git
 - Rust (cargo)
 
-Note: It is strongly recommended to use [`rustup`](https://rustup.rs/)
-to install the Rust compiler. Changing compiler targets may not work
-correctly otherwise.
+It is strongly recommended to use [`rustup`](https://rustup.rs/)
+to install the Rust compiler. Changing compiler targets may not
+work correctly otherwise.
 
 ## Building
 
-Building libspook is dependent on the vulnerable program. On Windows,
-a 32-bit program cannot load a 64-bit DLL. In such a case, libspook
-will need to be built as a 32-bit library.
+The vulnerable program dictates how to build libspook. For example,
+a 32-bit Windows program cannot load a 64-bit DLL. In such a case,
+libspook must be built as a 32-bit library.
+
+#### Current OS and CPU architecture
+
+Simply execute:
+
+```sh
+cargo build
+```
 
 #### Windows x86 32-bit
 
@@ -60,7 +68,7 @@ cargo build_wx86
 
 #### Build options
 
-In addition to the `debug` configuration setting (discussed below),
+In addition to the `debug` configuration parameter (discussed below),
 additional debug information can be obtained at runtime by building
 libspook with:
 
