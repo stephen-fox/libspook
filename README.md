@@ -31,7 +31,7 @@ of phantom DLL hijacking.
 1. Find an application that attempts to load a non-existent, "phantom"
    library. Refer to [HackTricks blog post][hacktricks-post]
    and [Seung's blog post][sk-post] for examples
-2. Compile libspook
+2. [Compile libspook](#building)
 3. Copy libspook into a directory in the library search paths.
    On Windows, this can be a directory named by the `PATH` variable.
    Make sure to rename the library to match the name of the phantom
@@ -39,7 +39,7 @@ of phantom DLL hijacking.
 4. Create a configuration file in `~/.libspook/libspook.conf`
    (on Windows, `~` means your user account's directory)
 5. Create an entry in the configuration file according according
-   to the [Configuration](#configuration) section
+   to the [Configuration section](#configuration)
 6. Start the program that attempts to load the phantom library
 
 [hacktricks-post]: https://book.hacktricks.wiki/en/windows-hardening/windows-local-privilege-escalation/dll-hijacking/index.html
