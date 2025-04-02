@@ -1,8 +1,7 @@
 #![allow(non_snake_case)]
 
-#[allow(deprecated)]
 use std::{
-    env::{self, home_dir},
+    env::{self},
     error::Error,
     fs::File,
     io::{self, BufRead},
@@ -169,7 +168,7 @@ impl ConfigParser {
 
     fn default_config_path() -> Result<Option<PathBuf>, Box<dyn Error>> {
         #[allow(deprecated)]
-        let Some(mut config_path) = home_dir() else {
+        let Some(mut config_path) = env::home_dir() else {
             return Err("failed to get home directory")?;
         };
 
